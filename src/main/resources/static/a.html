@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<style>
+    tr:nth-of-type(even){
+        background-color: #bbbbbb;
+    }
+    #cx,#table,#lk{
+        text-align: center;
+        margin-top: 30px;
+    }
+    table{
+        display: inline-block;
+    }
+    .fn,.delete,.update{
+        color: gray(50);
+        cursor: pointer;
+    }
+    .fn:hover,.delete:hover,.update:hover{
+        text-decoration-line: underline;
+        color: gray;
+    }
+</style>
+<body>
+<div id="cx">
+<label>图书名：</label><input type="text" id="byname">
+    <label>状态：</label><select id="bystatus">
+    <option value="3">请选择</option>
+    <option value="0">未借出</option>
+    <option value="1">已借出</option>
+</select>
+<input type="button" id="select" value="查询">
+</div>
+<div id="table">
+ <table id="biaodan">
+     <tr>
+         <th>图书名</th>
+         <th>状态</th>
+         <th>出版社</th>
+         <th>出租人</th>
+         <th>出租时间</th>
+         <th>功能</th>
+     </tr>
+ </table>
+</div>
+<div id="lk">
+第<span id="kl"></span>页/共<span id="bl"></span>页<span class="fn">首页</span><span class="fn">上一页</span><span class="fn">下一页</span><span class="fn">末页</span>
+</div>
+<div id="xiugai">
+    <form action="update">
+        <input type="hidden" name="bookid"><br>
+        图书名：<input type="text" name="bookname"><br>
+        出版社：<input type="text" name="press">
+        <label>状态：</label><select name="status">
+        <option value="0">未借出</option>
+        <option value="1">已借出</option></select><br>
+        <div id="lok">
+        出租人：<input type="text" name="username"><br>
+        出租时间：<input type="text" name="borrowdate"><br>
+        </div>
+        <input type="submit" value="保存">
+    </form>
+</div>
+</body>
+</html>
+<script src="jquery-2.2.4.js" type="text/javascript"></script>
+<script  type="text/javascript">
+    var pageNo=1;
+    var pageSize=3;
+    var pages=0;
+    $(function(){
+        $("#xiugai").hide()
+        $("body").on("click",".update",function(){
+            $("#lok")
+            $("#xiugai").show()
+            var id=$(this).attr("bookid");
+            var status = $(this).parent().prev().prev().prev().prev().html();
+            var bookname=$(this).parent().prev().prev().prev().prev().prev().html();
+            var press=$(this).parent().prev().prev().prev().html();
+            var username=$(this).parent().prev().prev().html();
+            var time=$(this).parent().prev().html();
+            $("input[name=bookid]").val(id)
+            $("input[name=bookname]").val(bookname)
+            $("input[name=press]").val(press)
+            if ( status=="未借出"){
+                $("select[name=status]").val(0)
+               $("#lok").hide()
+            }else {
+                $("select[name=status]").val(1)
+                $("input[name=username]").val(username)
+                $("input[name=borrowdate]").val(time)
+                $("#lok").show()
+            }
+        })
+        init();
+        $("span:eq(2)").click(function(){
+            pageNo=1;
+            init();
+        })
+        $("span:eq(3)").click(function(){
+            pageNo=pageNo-1;
+            init();
+        })
+        $("span:eq(4)").click(function(){
+            pageNo=pageNo+1;
+            init();
+        })
+        $("span:eq(5)").click(function(){
+            pageNo=pages;
+            init();
+        })
+        $("#select").click(function(){
+            var name=$("#byname").val();
+            var status=$("#bystatus").val()
+            $.ajax({
+                url:"select",
+                data:"name="+name+"&Status="+status,
+                dataType: "json",
+                success:function (data) {
+                    $("tr:gt(0)").remove();
+                    for (var i=0;i<data.length;i++) {
+                        var a="已借出"
+                        if (data[i].status==0){
+                            a="未借出";
+                            data[i].username="无";
+                            data[i].borrowdate="无"
+                        }
+                        var $tr = $("<tr></tr>")
+                        var $tname = $("<td>" + data[i].bookname + "</td>")
+                        var $status = $("<td>" + a + "</td>")
+                        var $press = $("<td>" + data[i].press + "</td>")
+                        var $userName = $("<td>" + data[i].username + "</td>")
+                        var $borrowDate = $("<td>" + data[i].borrowdate + "</td>")
+                        var $gongneng = $("<td><span class='delete' bookid='"+data[i].bookid+"'>删除</span><span class='update' bookid='"+data[i].bookid+"'>修改</span></td>")
+                        $tr.append($tname).append($status).append($press).append($userName).append($borrowDate).append($gongneng)
+                        $("#biaodan").append($tr)
+                    }
+                }
+            })
+
+        })
+        $("body").on("click",".delete",function(){
+            var id=$(this).attr("bookid");
+            $.ajax({
+                url:"delete",
+                data:"bookid="+id,
+                success:function (pageinfo) {
+                    if (pageinfo>0){
+                        alert("删除成功")
+                        window.location.href="http://localhost:8080"
+                    }else{
+                        alert("删除失败")
+                        window.location.href="http://localhost:8080"
+                    }
+                }
+            })
+        })
+    })
+   function init() {
+        $.ajax({
+            url:"/zzx",
+            data:"pageNo="+pageNo+"&pageSize="+pageSize,
+            dataType:"json",
+            success:function (pageinfo) {
+                $("span:eq(0)").html(pageinfo.pageNum)
+                $("span:eq(1)").html(pageinfo.pages);
+                pages=pageinfo.pages
+                $("span").show();
+                $("tr:gt(0)").remove();
+                var data=pageinfo.list;
+                if (pageinfo.isFirstPage==true){
+                    $("span:eq(2)").hide()
+                    $("span:eq(3)").hide()
+                }
+                if (pageinfo.isLastPage==true){
+                    $("span:eq(4)").hide()
+                    $("span:eq(5)").hide()
+                }
+
+                for (var i=0;i<data.length;i++) {
+                    var a="已借出"
+                    if (data[i].status==0){
+                        a="未借出";
+                        data[i].username="无";
+                        data[i].borrowdate="无"
+                    }
+                    var $tr = $("<tr></tr>")
+                    var $tname = $("<td>" + data[i].bookname + "</td>")
+                    var $status = $("<td>" + a + "</td>")
+                    var $press = $("<td>" + data[i].press + "</td>")
+                    var $userName = $("<td>" + data[i].username + "</td>")
+                    var $borrowDate = $("<td>" + data[i].borrowdate + "</td>")
+                    var $gongneng = $("<td><span class='delete' bookid='"+data[i].bookid+"'>删除</span><span class='update' bookid='"+data[i].bookid+"'>修改</span></td>")
+                    $tr.append($tname).append($status).append($press).append($userName).append($borrowDate).append($gongneng)
+                    $("#biaodan").append($tr)
+                }
+            }
+        })
+   }
+</script>
