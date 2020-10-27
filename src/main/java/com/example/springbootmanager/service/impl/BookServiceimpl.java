@@ -1,5 +1,6 @@
 package com.example.springbootmanager.service.impl;
 
+import com.example.springbootmanager.mapper.BookMapper;
 import com.example.springbootmanager.pojo.Book;
 import com.example.springbootmanager.service.BookService;
 import org.springframework.stereotype.Service;
